@@ -4,36 +4,131 @@
   xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
   xmlns="http://schemas.microsoft.com/online/cpim/schemas/2013/06" 
   PolicySchemaVersion="0.3.0.0" 
-  TenantId="yourtenant.onmicrosoft.com" 
+  TenantId="najibllc.onmicrosoft.com" 
   PolicyId="B2C_1A_TrustFrameworkExtensions" 
-  PublicPolicyUri="http://yourtenant.onmicrosoft.com/B2C_1A_TrustFrameworkExtensions">
+  PublicPolicyUri="http://najibllc.onmicrosoft.com/B2C_1A_TrustFrameworkExtensions">
   
   <BasePolicy>
-    <TenantId>yourtenant.onmicrosoft.com</TenantId>
+    <TenantId>najibllc.onmicrosoft.com</TenantId>
     <PolicyId>B2C_1A_TrustFrameworkBase</PolicyId>
   </BasePolicy>
   <BuildingBlocks>
-
+    <ClaimsSchema>
+      <ClaimType Id="extension_accountOrOutlet">
+        <DisplayName>Account or Outlet Number</DisplayName>
+        <DataType>int</DataType>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>
+      <ClaimType Id="PostalCode">
+        <DisplayName>Postal Code</DisplayName>
+        <DataType>int</DataType>
+        <UserInputType>TextBox</UserInputType>
+      </ClaimType>  
+    </ClaimsSchema>
   </BuildingBlocks>
 
   <ClaimsProviders>
 
-
     <ClaimsProvider>
+      <DisplayName>Local Account</DisplayName>
+      <TechnicalProfiles>
+        <TechnicalProfile Id="LocalAccountSignUpWithLogonEmail">
+          <OutputClaims>
+            <!-- Required to present the text box to collect the data from the user -->
+            <OutputClaim ClaimTypeReferenceId="extension_accountOrOutlet"/>
+            <OutputClaim ClaimTypeReferenceId="PostalCode"/>
+            <OutputClaim ClaimTypeReferenceId="givenName"/>
+            <OutputClaim ClaimTypeReferenceId="surName"/>
+            <OutputClaim ClaimTypeReferenceId="email" PartnerClaimType="Verified.Email" Required="true"/>
+            <OutputClaim ClaimTypeReferenceId="newPassword" Required="true"/>
+            <OutputClaim ClaimTypeReferenceId="reenterPassword" Required="true"/>
+            <!-- Required to pass the promoCode returned from "REST-ValidateProfile" 
+            to subsequent orchestration steps and token issuance-->
+          </OutputClaims>
+          <ValidationTechnicalProfiles>
+            <ValidationTechnicalProfile ReferenceId="REST-ValidateProfile" />
+          </ValidationTechnicalProfiles>
+        </TechnicalProfile>
+      </TechnicalProfiles>
+    </ClaimsProvider>
+    <ClaimsProvider>
+    
       <DisplayName>Local Account SignIn</DisplayName>
       <TechnicalProfiles>
          <TechnicalProfile Id="login-NonInteractive">
           <Metadata>
-            <Item Key="client_id">ProxyIdentityExperienceFrameworkAppId</Item>
-            <Item Key="IdTokenAudience">IdentityExperienceFrameworkAppId</Item>
+            <Item Key="client_id">66417a8f-ec9c-4ed9-9551-46ba4e25931d</Item>
+            <Item Key="IdTokenAudience">73946b9b-3ab3-404c-ada1-521b5d66307d</Item>
           </Metadata>
           <InputClaims>
-            <InputClaim ClaimTypeReferenceId="client_id" DefaultValue="ProxyIdentityExperienceFrameworkAppId" />
-            <InputClaim ClaimTypeReferenceId="resource_id" PartnerClaimType="resource" DefaultValue="IdentityExperienceFrameworkAppId" />
+            <InputClaim ClaimTypeReferenceId="client_id" DefaultValue="66417a8f-ec9c-4ed9-9551-46ba4e25931d" />
+            <InputClaim ClaimTypeReferenceId="resource_id" PartnerClaimType="resource" DefaultValue="73946b9b-3ab3-404c-ada1-521b5d66307d" />
           </InputClaims>
         </TechnicalProfile>
       </TechnicalProfiles>
     </ClaimsProvider>
+
+    <ClaimsProvider>    
+      <DisplayName>REST APIs</DisplayName>
+      <TechnicalProfiles>
+        <TechnicalProfile Id="REST-ValidateProfile">
+          <DisplayName>Check loyaltyId Azure Function web hook</DisplayName>
+          <Protocol Name="Proprietary" Handler="Web.TPEngine.Providers.RestfulProvider, Web.TPEngine, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
+          <Metadata>
+            <Item Key="ServiceUrl">https://prod-29.northcentralus.logic.azure.com:443/workflows/ce645fa02434429a948226bba374313c/triggers/manual/paths/invoke?api-version=2016-10-01&amp;sp=%2Ftriggers%2Fmanual%2Frun&amp;sv=1.0&amp;sig=EPhfmE6pPQq2pSTBb17UKEVrRegt9vDz1k5anVOV7XU</Item>
+            <Item Key="SendClaimsIn">Body</Item>
+            <!-- Set AuthenticationType to Basic or ClientCertificate in production environments -->
+            <Item Key="AuthenticationType">None</Item>
+            <!-- REMOVE the following line in production environments -->
+            <Item Key="AllowInsecureAuthInProduction">true</Item>
+          </Metadata>
+          <InputClaims>
+            <!-- Claims sent to your REST API -->
+            <InputClaim ClaimTypeReferenceId="extension_accountOrOutlet" />
+            <InputClaim ClaimTypeReferenceId="PostalCode" />
+          </InputClaims>
+          <UseTechnicalProfileForSessionManagement ReferenceId="SM-Noop" />
+        </TechnicalProfile>
+      </TechnicalProfiles>
+    </ClaimsProvider>
+
+    <ClaimsProvider>
+      <DisplayName>Azure Active Directory</DisplayName>
+      <TechnicalProfiles>
+        <TechnicalProfile Id="AAD-Common">
+          <Metadata>
+            <!--Insert b2c-extensions-app application ID here, for example: 11111111-1111-1111-1111-111111111111-->  
+            <Item Key="ClientId">64175f61-dcd7-4a15-97af-d582ecc2005d</Item>
+            <!--Insert b2c-extensions-app application ObjectId here, for example: 22222222-2222-2222-2222-222222222222-->
+            <Item Key="ApplicationObjectId">c183e3de-ba0a-4373-afd7-166b77f73e86</Item>
+          </Metadata>
+        </TechnicalProfile>    
+        <!-- Write data during a local account sign-up flow. -->
+        <TechnicalProfile Id="AAD-UserWriteUsingLogonEmail">
+          <PersistedClaims>
+            <PersistedClaim ClaimTypeReferenceId="extension_accountOrOutlet"/>
+          </PersistedClaims>
+        </TechnicalProfile>   
+        <!-- Write data during edit profile flow. -->
+        <TechnicalProfile Id="AAD-UserWriteProfileUsingObjectId">
+          <PersistedClaims>
+            <PersistedClaim ClaimTypeReferenceId="extension_accountOrOutlet"/>
+          </PersistedClaims>
+        </TechnicalProfile>
+        <!-- Read data after user authenticates with a local account. -->
+        <TechnicalProfile Id="AAD-UserReadUsingEmailAddress">
+          <OutputClaims>  
+            <OutputClaim ClaimTypeReferenceId="extension_accountOrOutlet" />
+          </OutputClaims>
+        </TechnicalProfile>
+        <!-- Read data after user authenticates with a federated account. -->
+        <TechnicalProfile Id="AAD-UserReadUsingObjectId">
+          <OutputClaims>  
+            <OutputClaim ClaimTypeReferenceId="extension_accountOrOutlet" />
+          </OutputClaims>
+        </TechnicalProfile>
+      </TechnicalProfiles>
+    </ClaimsProvider>    
 
   </ClaimsProviders>
 
